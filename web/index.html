@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>sprite2model: pixel-art sprites to 3D models</title>
+		<meta name="description" content="Turn a sprite drawn slanted (an oblique or isometric pixel-art sprite, or a creature's four-way outfit sheet) into a textured 3D model (.glb), in your browser." />
+		<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+		<link rel="stylesheet" href="style.css" />
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+					"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+				}
+			}
+		</script>
+		<script type="module" src="app.js"></script>
+	</head>
+	<body>
+		<header>
+			<div class="brand">
+				<img src="favicon.svg" alt="" width="28" height="28" />
+				<h1>sprite2model</h1>
+				<span class="tag">pixel-art sprites drawn slanted, made into 3D models</span>
+			</div>
+			<nav>
+				<a href="#how">How it works</a>
+				<a href="https://github.com/Coldensjo/sprite2model/releases">Download</a>
+				<a href="https://github.com/Coldensjo/sprite2model">GitHub</a>
+			</nav>
+		</header>
+
+		<main>
+			<section class="panel input" aria-label="Sprite and options">
+				<label class="drop" id="drop" tabindex="0">
+					<input type="file" id="file" accept="image/png,image/gif" hidden />
+					<strong>Drop a sprite here</strong>
+					<span>or click to choose a PNG</span>
+				</label>
+				<div>
+					<h2>Examples</h2>
+					<div class="examples" id="examples"></div>
+				</div>
+				<div class="options">
+					<h2>Options</h2>
+					<label>
+						Drawn as
+						<select id="projection">
+							<option value="tibia">Oblique (up and to the left)</option>
+							<option value="iso">Isometric 2:1</option>
+						</select>
+					</label>
+					<label title="One picture shows no depth: how to guess it. Auto tries Box (or Round), Wall and Cut-out and keeps the one that explains most of the sprite.">
+						Read as
+						<select id="reading">
+							<option value="auto">Auto (best fit)</option>
+							<option value="box">Box (pillars, crates, furniture)</option>
+							<option value="round">Round (columns, trees, rocks)</option>
+							<option value="wall">Wall (walls, fences, corners)</option>
+							<option value="cutout">Cut-out (statues, one-sided things)</option>
+							<option value="hull">Hull (as wide as the picture allows)</option>
+							<option value="outfit">Outfit sheet (a creature facing four ways)</option>
+						</select>
+					</label>
+					<label id="frameRow" hidden>
+						Frame
+						<select id="frame"></select>
+					</label>
+					<label class="check"><input type="checkbox" id="outline" /> Keep the dark outline</label>
+					<label class="check" title="Where the thing's axis meets the ground, in the sprite's pixels; unset, it is found"><input type="checkbox" id="centre" /> Set the centre</label>
+					<div class="xy" id="centreRow" hidden>
+						<label>x <input type="number" id="cx" min="0" max="1024" /></label>
+						<label>y <input type="number" id="cy" min="0" max="1024" /></label>
+					</div>
+				</div>
+			</section>
+
+			<section class="stage" aria-label="The model">
+				<div class="viewport">
+					<canvas id="view"></canvas>
+					<div class="tools">
+						<button data-view="drawn" title="From the south-east, above, as the sprite was drawn">As drawn</button>
+						<button data-view="front" title="From the south">Front</button>
+						<button data-view="side" title="From the east">Side</button>
+						<button data-view="top" title="From above">Top</button>
+						<span class="gap"></span>
+						<button class="toggle on" id="turn" aria-pressed="true" title="Turn the model (dragging stops it)">Turn</button>
+						<button class="toggle" id="wire" aria-pressed="false" title="Show the triangles">Wire</button>
+						<button class="toggle on" id="texture" aria-pressed="true" title="Show the sprite's colours">Texture</button>
+						<button class="toggle on" id="grid" aria-pressed="true" title="Show the tiles, one unit each">Grid</button>
+					</div>
+					<div class="hint" id="hint">Drop a sprite, or pick an example. Drag to turn the view, the wheel to zoom.</div>
+					<div class="badge" id="busy" hidden>Converting…</div>
+				</div>
+				<div class="flat">
+					<figure>
+						<figcaption>Sprite</figcaption>
+						<div class="pic"><img id="sprite" alt="" /></div>
+					</figure>
+					<figure class="grow">
+						<figcaption id="sidesCaption">The model drawn the same way, from its four sides</figcaption>
+						<div class="pic"><img id="sides" alt="" /></div>
+					</figure>
+				</div>
+			</section>
+
+			<section class="panel output" aria-label="What was made">
+				<h2 id="name">No sprite yet</h2>
+				<p class="error" id="error" hidden></p>
+				<dl id="stats"></dl>
+				<button class="primary" id="download" disabled>Download .glb</button>
+				<p class="dim small" id="engine"></p>
+			</section>
+		</main>
+
+		<article id="how">
+			<h2>How it works</h2>
+			<p>
+				A sprite drawn slanted is one view of a thing: every pixel is a ray through it, and a thing anywhere along that ray would draw the
+				same. sprite2model guesses the depth from what such things usually are, and carves voxels one sprite pixel wide:
+			</p>
+			<ul>
+				<li><b>Box and Round</b>: the thing stands at its tile's centre and is the same mirrored east to west and north to south. Its mirrored copies (the thing seen from the other diagonals) must all fall on the silhouette, which carves a visual hull; each level is then a box or a circle as wide as the hull reaches along the diagonals, and the overhang the hull leaves on flat tops is peeled off.</li>
+				<li><b>Wall</b>: it runs the length of its tile, the same all along: walls, fences, corners.</li>
+				<li><b>Cut-out</b>: it is one-sided (a statue, a banner), stood up facing you and given a rounded body behind.</li>
+				<li><b>Outfit sheet</b>: a creature drawn facing north, east, south and west, one column each, all from the same eye: the four columns are four real views, and the model is carved where all four see it.</li>
+				<li><b>Auto</b> tries them about a few possible centres and keeps the one that explains most of the sprite.</li>
+			</ul>
+			<p>
+				Faces the sprite shows take its pixels' colours; hidden ones those of the same face mirrored, or of the front at the other end of their row. The faces of each plane are merged into rectangles and their texels packed into one texture, drawn with nearest filtering: a crisp, low-poly model (a pillar is 92 triangles), one tile one unit, standing on its origin.
+			</p>
+			<h2>On your computer</h2>
+			<p>
+				Download <code>sprite2model</code> from the <a href="https://github.com/Coldensjo/sprite2model/releases">releases</a> (or <code>go install github.com/Coldensjo/sprite2model/cmd/sprite2model@latest</code>), then:
+			</p>
+			<pre>sprite2model -preview pillar.png          # writes pillar.glb and pillar.preview.png
+sprite2model -reading round -out models *.png
+sprite2model serve                        # this page, run locally</pre>
+			<p class="dim small">The page converts in your browser (Go compiled to WebAssembly): your sprites never leave your computer.</p>
+		</article>
+
+		<footer>
+			<span>sprite2model <span id="version"></span> · MIT licence</span>
+			<a href="https://github.com/Coldensjo/sprite2model">github.com/Coldensjo/sprite2model</a>
+		</footer>
+	</body>
+</html>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges">
+	<!-- A cube in the oblique drawing the tool reads: its top up and to the left of its sides. -->
+	<rect x="4" y="4" width="16" height="16" fill="#e0a45a"/>
+	<polygon points="4,20 20,20 28,28 12,28" fill="#a8672c"/>
+	<polygon points="20,4 28,12 28,28 20,20" fill="#7d4b1f"/>
+	<path d="M4 4h16l8 8v16H12l-8-8z" fill="none" stroke="#1a1208" stroke-width="1.5"/>
+</svg>

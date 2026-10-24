@@ -1,0 +1,10 @@
+# Built by the page's workflow (and by hand to try the page locally).
+web/sprite2model.wasm
+web/wasm_exec.js
+# The command line, built.
+/sprite2model
+/sprite2model.exe
+/dist/
+/build/
+*.glb
+*.preview.png
