@@ -76,6 +76,9 @@ type attempt struct {
 	count   []int
 	covered int // percentage of the opaque pixels drawn
 	run     string
+	// square says whether a level of the hull showed its corner: a box's top does, a round thing's
+	// never.
+	square bool
 }
 
 // measure counts the kept cells on each pixel's ray, and the share of the sprite they draw.
@@ -131,7 +134,7 @@ func (s *sprite) mirrored(reading Reading, cx, cy int) *attempt {
 	}
 	a.core = hull
 	if reading != Hull {
-		a.core = shapeLevels(hull, cx, cy, reading == Round)
+		a.core, a.square = shapeLevels(hull, cx, cy, reading == Round)
 	}
 	s.measure(a)
 	peel(a.core, s.v, a.syms, a.count, s.w, s.isOpaque)
@@ -145,9 +148,11 @@ func (s *sprite) mirrored(reading Reading, cx, cy int) *attempt {
 // sides, whose width across the diagonal is all it tells) takes the proportions of the nearest level
 // above that showed them, else below, else a square. A cell is kept when the hull holds the cell on
 // its ring at the corner (a box) or at the diagonal (an ellipse): so a level can be a ring, or legs.
-func shapeLevels(hull grid, cx, cy int, round bool) grid {
+// It also says whether any level showed its corner.
+func shapeLevels(hull grid, cx, cy int, round bool) (grid, bool) {
 	// The proportions of each level that shows them: its length over its depth.
 	seen := make([]float64, hull.nz)
+	square := false
 	for z := range hull.nz {
 		// The level's reach along x and along y, in half cells.
 		X, Y := 0, 0
@@ -161,6 +166,11 @@ func shapeLevels(hull grid, cx, cy int, round bool) grid {
 		}
 		if X > 0 && hull.at(cx+(X-1)/2, cy+(Y-1)/2, z) {
 			seen[z] = float64(X) / float64(Y)
+		}
+		// A box shows its corner, a cell in from its reach either way (an outline may add one); a
+		// round level never does, but a level a few cells across is a corner of itself.
+		if X >= 9 && Y >= 9 && hull.at(cx+(X-3)/2, cy+(Y-3)/2, z) {
+			square = true
 		}
 	}
 	ratio := make([]float64, hull.nz)
@@ -205,7 +215,7 @@ func shapeLevels(hull grid, cx, cy int, round bool) grid {
 			}
 		}
 	}
-	return out
+	return out, square
 }
 
 // wall reads the sprite as a wall the length of its tile: the cells of each cross-section drawn on the
@@ -451,6 +461,12 @@ func (s *sprite) choose(reading Reading, centre *[2]int) (*attempt, []Score) {
 		shape = Round
 	}
 	box := best(shape)
+	if !organic && !box.square {
+		// No level shows a corner: built, but round (a barrel, a column).
+		if round := best(Round); round.covered >= box.covered-5 {
+			box = round
+		}
+	}
 	if organic {
 		if box.covered >= cutoutBelow {
 			return box, scores
