@@ -6,7 +6,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 // sprite2model.wasm (the GitHub page) or, run by `sprite2model serve`, through its /api/convert.
 
 const EXAMPLES = ['pillar', 'crate', 'barrel', 'tree', 'wall', 'golem_outfit']
-const READING_NAMES = { box: 'Box', round: 'Round', wall: 'Wall', cutout: 'Cut-out', hull: 'Hull', outfit: 'Outfit sheet' }
+const READING_NAMES = { box: 'Box', round: 'Round', wall: 'Wall', cutout: 'Cut-out', hull: 'Hull', outfit: 'Outfit sheet', item: 'Item' }
 const $ = (id) => document.getElementById(id)
 
 let sprite = null // { name, bytes, url }
@@ -206,16 +206,26 @@ async function convert(keepView) {
 function report(r) {
 	const rep = r.report
 	$('sides').src = `data:image/png;base64,${r.sides}`
-	$('sidesCaption').textContent = rep.reading === 'outfit' ? 'The model drawn facing south, west, north and east' : 'The model drawn the same way, from its four sides'
+	$('sidesCaption').textContent =
+		rep.reading === 'outfit'
+			? 'The model drawn facing south, west, north and east'
+			: rep.reading === 'item'
+				? 'The model stood up: front, three-quarters, edge on and back'
+				: 'The model drawn the same way, from its four sides'
+	const item = rep.reading === 'item'
 	const rows = [
 		['Read as', `${READING_NAMES[rep.reading] ?? rep.reading}${rep.run ? ` (${rep.run})` : ''}`],
-		['Centre', `${rep.centre.X}, ${rep.centre.Y}`],
+		[item ? 'Grip' : 'Centre', `${rep.centre.X}, ${rep.centre.Y}`],
 		['Sprite', `${rep.width} x ${rep.height}`],
 		['Size', `${rep.size.map((n) => n.toFixed(2)).join(' x ')} tiles`],
 		['Triangles', rep.triangles.toLocaleString()],
-		['Voxels', rep.voxels.toLocaleString()],
-		['Explains', `${rep.covered}% of the sprite`],
-		['Plates', `${rep.extra.toLocaleString()} voxels`],
+		...(item
+			? []
+			: [
+					['Voxels', rep.voxels.toLocaleString()],
+					['Explains', `${rep.covered}% of the sprite`],
+					['Plates', `${rep.extra.toLocaleString()} voxels`],
+				]),
 		['File', `${(atob(r.glb).length / 1024).toFixed(1)} KB`],
 	]
 	if (rep.scores?.length > 1) rows.push(['Tried', rep.scores.map((s) => `${READING_NAMES[s.reading] ?? s.reading} ${s.covered}%`).join('\n')])

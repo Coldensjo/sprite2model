@@ -13,7 +13,10 @@
 //     still draws every pixel: the hull leaves a pyramid over a flat top, peeled.
 //   - Wall: it runs the length of its tile, the same all along.
 //   - Cutout: it is one-sided, stood up facing the eye and given a rounded body behind.
-//   - Auto tries them and keeps the one that draws most of the sprite.
+//   - Item (item.go): it is not standing at all but drawn flat, an inventory icon (a sword, an axe),
+//     made a smooth bevelled mesh and stood upright.
+//   - Auto tries them and keeps the one that draws most of the sprite; a long sprite nothing standing
+//     on its tile draws is taken for an item.
 //
 // Pixels the reading leaves undrawn (an arm, a handle, a branch) become thin plates on its surface at
 // the depth of the pixels beside them. The faces the picture shows take the colour of the pixel they
@@ -48,7 +51,7 @@ type Options struct {
 	// take the colour of the pixels inside them, since a model's edges are not outlined.
 	KeepOutline bool `json:"keepOutline,omitempty"`
 	// Centre is where the thing's vertical axis meets the ground, in sprite pixels at height 0; nil
-	// finds it (the tile's centre or the foot drawn, whichever fits best).
+	// finds it (the tile's centre or the foot drawn, whichever fits best). For an item, its grip.
 	Centre *image.Point `json:"centre,omitempty"`
 	// Scale multiplies the model's size; 1 (or 0) makes one tile one unit wide.
 	Scale float64 `json:"scale,omitempty"`
@@ -91,6 +94,8 @@ type Model struct {
 	ground int
 	// v is how the sprite (or an outfit's frame) was drawn, for Preview.
 	v view
+	// mesh is an item's model (Item), made as triangles rather than cells; nil for the others.
+	mesh *mesh
 	// Report says what was made, for a status line.
 	Report Report
 }
@@ -196,9 +201,9 @@ func Convert(name string, img image.Image, opt Options) (*Model, error) {
 		return nil, fmt.Errorf("unknown projection %q (tibia or iso)", opt.Projection)
 	}
 	switch opt.Reading {
-	case Auto, Box, Round, Hull, Wall, Cutout, Outfit:
+	case Auto, Box, Round, Hull, Wall, Cutout, Outfit, Item:
 	default:
-		return nil, fmt.Errorf("unknown reading %q (auto, box, round, wall, cutout, hull or outfit)", opt.Reading)
+		return nil, fmt.Errorf("unknown reading %q (auto, box, round, wall, cutout, hull, outfit or item)", opt.Reading)
 	}
 	b := img.Bounds()
 	w, h := b.Dx(), b.Dy()
@@ -252,8 +257,26 @@ func Convert(name string, img image.Image, opt Options) (*Model, error) {
 	}
 	m.unit *= opt.Scale
 	m.v = s.v
+	m.Report.Width, m.Report.Height = w, h
 
+	if opt.Reading == Item {
+		s.item(m, m.unit, opt.Centre)
+		m.Report.Scores = []Score{{Item, 100}}
+		return m, nil
+	}
 	a, scores := s.choose(opt.Reading, centre)
+	standing := 0 // the most a reading that stands the thing on its tile draws (Cutout draws anything)
+	for _, sc := range scores {
+		if sc.Reading != Cutout {
+			standing = max(standing, sc.Covered)
+		}
+	}
+	if opt.Reading == Auto && standing < itemBelow && s.elongation() >= itemLong {
+		// Long, and nothing stood on its tile draws it: an item drawn flat, an icon.
+		s.item(m, m.unit, opt.Centre)
+		m.Report.Scores = append(scores, Score{Item, 100})
+		return m, nil
+	}
 	m.g, m.syms, m.cx, m.cy = a.core, a.syms, a.cx, a.cy
 	m.Report.Scores = scores
 	m.Report.Covered = a.covered

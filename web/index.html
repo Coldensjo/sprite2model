@@ -51,7 +51,7 @@
 							<option value="iso">Isometric 2:1</option>
 						</select>
 					</label>
-					<label title="One picture shows no depth: how to guess it. Auto tries Box (or Round), Wall and Cut-out and keeps the one that explains most of the sprite.">
+					<label title="One picture shows no depth: how to guess it. Auto tries Box (or Round), Wall and Cut-out and keeps the one that explains most of the sprite; a long sprite none of them stands up is read as an Item.">
 						Read as
 						<select id="reading">
 							<option value="auto">Auto (best fit)</option>
@@ -61,6 +61,7 @@
 							<option value="cutout">Cut-out (statues, one-sided things)</option>
 							<option value="hull">Hull (as wide as the picture allows)</option>
 							<option value="outfit">Outfit sheet (a creature facing four ways)</option>
+							<option value="item">Item (a weapon or tool drawn flat, an icon)</option>
 						</select>
 					</label>
 					<label id="frameRow" hidden>
@@ -125,7 +126,8 @@
 				<li><b>Wall</b>: it runs the length of its tile, the same all along: walls, fences, corners.</li>
 				<li><b>Cut-out</b>: it is one-sided (a statue, a banner), stood up facing you and given a rounded body behind.</li>
 				<li><b>Outfit sheet</b>: a creature drawn facing north, east, south and west, one column each, all from the same eye: the four columns are four real views, and the model is carved where all four see it.</li>
-				<li><b>Auto</b> tries them about a few possible centres and keeps the one that explains most of the sprite.</li>
+				<li><b>Item</b>: an inventory icon (a sword, an axe, a shield) drawn flat, facing you. The staircases of its outline are filled to the diagonal, so a blade drawn at 45 degrees has straight edges; broad parts are bevelled to a thin edge, narrow ones (a grip) made round; the sprite is its texture front and back, and it is stood upright, blade or head on top, its origin at the grip.</li>
+				<li><b>Auto</b> tries them about a few possible centres and keeps the one that explains most of the sprite; a long sprite that nothing standing on its tile explains is taken for an item.</li>
 			</ul>
 			<p>
 				Faces the sprite shows take its pixels' colours; hidden ones those of the same face mirrored, or of the front at the other end of their row. The faces of each plane are merged into rectangles and their texels packed into one texture, drawn with nearest filtering: a crisp, low-poly model (a pillar is 92 triangles), one tile one unit, standing on its origin.

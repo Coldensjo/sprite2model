@@ -1,5 +1,6 @@
 // Command sprite2model turns sprites drawn in a slanted projection (Tibia-style item sprites, 2:1
-// isometric sprites, a creature's four-way outfit sheet) into 3D models, glTF binaries (.glb):
+// isometric sprites, a creature's four-way outfit sheet) or an item's icon drawn flat into 3D models,
+// glTF binaries (.glb):
 //
 //	sprite2model [flags] <sprite.png>...   convert, writing <name>.glb beside each sprite (or into -out)
 //	sprite2model serve [-addr host:port]   open the converter's page in the browser, run locally
@@ -7,10 +8,10 @@
 // Flags:
 //
 //	-proj tibia|iso     how the sprite is drawn (default tibia)
-//	-reading auto|box|round|wall|cutout|hull|outfit
+//	-reading auto|box|round|wall|cutout|hull|outfit|item
 //	                    how to guess its depth (default auto)
 //	-outline            keep the dark outline round the silhouette in the colours
-//	-centre x,y         where its axis meets the ground, in sprite pixels (default: found)
+//	-centre x,y         where its axis meets the ground (an item's grip), in sprite pixels (default: found)
 //	-scale f            size factor; 1 makes one tile one unit (default 1)
 //	-frame n            for an outfit sheet, the row (a frame of its walk) to read, from 0
 //	-out dir            folder for the models (default: beside each sprite)
@@ -34,9 +35,9 @@ func main() {
 		return
 	}
 	proj := flag.String("proj", "tibia", "how the sprite is drawn: tibia, or iso (2:1 isometric)")
-	reading := flag.String("reading", "auto", "how to guess the depth: auto, box, round, wall, cutout, hull, or outfit (a sheet facing four ways)")
+	reading := flag.String("reading", "auto", "how to guess the depth: auto, box, round, wall, cutout, hull, outfit (a sheet facing four ways), or item (a weapon or tool drawn flat)")
 	outline := flag.Bool("outline", false, "keep the dark outline round the silhouette in the colours")
-	centre := flag.String("centre", "", "where the thing's axis meets the ground, as x,y in sprite pixels (default: found)")
+	centre := flag.String("centre", "", "where the thing's axis meets the ground (an item's grip), as x,y in sprite pixels (default: found)")
 	scale := flag.Float64("scale", 1, "size factor; 1 makes one tile one unit")
 	frame := flag.Int("frame", 0, "for an outfit sheet, the row (frame of its walk) to read, from 0")
 	outDir := flag.String("out", "", "folder for the models (default: beside each sprite)")

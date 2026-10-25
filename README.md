@@ -2,7 +2,7 @@
 
 Turn a pixel-art sprite drawn slanted into a textured 3D model (`.glb`): an oblique sprite (the kind
 drawn with a thing's height up and to the left, as many top-down RPGs draw them), a 2:1 isometric
-sprite, or a creature's outfit sheet drawn facing four ways.
+sprite, a creature's outfit sheet drawn facing four ways, or a weapon's inventory icon drawn flat.
 
 **[Try it in your browser](https://coldensjo.github.io/sprite2model/)**: drop a PNG, turn the model,
 download the `.glb`. The page converts on your computer (Go compiled to WebAssembly); your sprites
@@ -24,6 +24,7 @@ usually are, carving voxels one sprite pixel wide:
 | **Cut-out** | one-sided: stood up facing you, given a rounded body behind | statues, banners, weapon racks |
 | **Hull** | whatever its mirrored silhouettes allow | checking a reading |
 | **Outfit sheet** | a creature drawn facing north, east, south and west, one column each | creatures, characters |
+| **Item** | drawn flat, facing you: bevelled where broad, round where narrow, stood upright | swords, axes, maces, shields |
 | **Auto** | the reading that explains most of the sprite | anything |
 
 - **Box and Round**: the mirrored copies of the sprite are the thing seen from the other three
@@ -34,7 +35,15 @@ usually are, carving voxels one sprite pixel wide:
   views of the creature; the model is carved where all four see it, about the foot they agree on best.
 - **Auto** tries the readings about the tile's centre and where the thing's foot is drawn, keeps the
   one that explains most of the sprite, and takes an outline with few straight runs for something
-  that grew (Round, never Wall).
+  that grew (Round, never Wall). A long sprite that no reading standing on its tile explains is taken
+  for an item.
+- **Item**: the outline is the sprite's, with each staircase notch filled to the diagonal, so a blade
+  drawn at 45 degrees has straight edges and a one-pixel diagonal line stays joined. Each point is as
+  thick as its distance from the edge and the breadth of its part say: a blade or an axe's head is
+  flat and bevelled to a thin edge with a ridge, a grip or a guard's arm round. It is a smooth mesh,
+  the sprite its texture front and back, turned so its long axis is upright with the greyer end (bare
+  metal: the blade, the head) on top, its origin at the grip: the middle of the handle below a guard
+  where one sticks out.
 - Pixels a reading leaves undrawn become thin plates. Faces the sprite shows take its pixels' colours;
   hidden ones those of the same face mirrored, or of the front at the other end of their row.
 - Each plane's faces are merged into rectangles and their texels packed into one texture with
@@ -62,9 +71,9 @@ sprite2model serve                          # the page, run locally, in your bro
 | Flag | |
 |---|---|
 | `-proj tibia\|iso` | how the sprite is drawn: oblique (`x - z, y - z`, 32 pixels a tile, the sprite's bottom-right on its tile's) or 2:1 isometric |
-| `-reading` | `auto` (default), `box`, `round`, `wall`, `cutout`, `hull` or `outfit` |
+| `-reading` | `auto` (default), `box`, `round`, `wall`, `cutout`, `hull`, `outfit` or `item` |
 | `-outline` | keep the dark outline round the silhouette in the colours (left out, it takes the colours inside it) |
-| `-centre x,y` | where the thing's axis meets the ground, in sprite pixels (default: found) |
+| `-centre x,y` | where the thing's axis meets the ground (an item's grip), in sprite pixels (default: found) |
 | `-scale f` | size factor; 1 makes one tile one unit |
 | `-frame n` | an outfit sheet's row (a frame of its walk), from 0 |
 | `-out dir` | where to write the models (default: beside each sprite) |

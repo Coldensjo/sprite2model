@@ -147,8 +147,12 @@ func pow2(n int) int {
 
 // GLB writes the model as a glTF binary: one mesh, its texture the faces' colours drawn with nearest
 // filtering (pixel art), y up, one tile one unit (times the options' scale), its origin where the
-// axis meets the ground, under its lowest cell.
+// axis meets the ground, under its lowest cell. An item (item.go) writes its own mesh.
 func (m *Model) GLB() ([]byte, error) {
+	if m.mesh != nil {
+		m.Report.Triangles = len(m.mesh.idx) / 3
+		return writeGLB(m.Name, m.mesh.pos, m.mesh.nrm, m.mesh.uvs, m.mesh.idx, m.mesh.tex)
+	}
 	rs := m.quads()
 	m.Report.Triangles = 2 * len(rs)
 	tex := m.atlas(rs)
@@ -164,8 +168,6 @@ func (m *Model) GLB() ([]byte, error) {
 			float32(float64(c[1]-m.cy) * m.unit),
 		}
 	}
-	lo := [3]float32{math.MaxFloat32, math.MaxFloat32, math.MaxFloat32}
-	hi := [3]float32{-math.MaxFloat32, -math.MaxFloat32, -math.MaxFloat32}
 	for _, r := range rs {
 		n, u, v := planeAxes(r.dir)
 		layer := r.layer
@@ -182,9 +184,6 @@ func (m *Model) GLB() ([]byte, error) {
 			pos = append(pos, p[i][:]...)
 			nrm = append(nrm, normal[:]...)
 			uvs = append(uvs, (float32(r.ax+k[0]))/tw, (float32(r.ay+k[1]))/th)
-			for a := range 3 {
-				lo[a], hi[a] = min(lo[a], p[i][a]), max(hi[a], p[i][a])
-			}
 		}
 		// Counter-clockwise seen from outside, as glTF's front faces are.
 		e1 := [3]float32{p[1][0] - p[0][0], p[1][1] - p[0][1], p[1][2] - p[0][2]}
@@ -194,6 +193,19 @@ func (m *Model) GLB() ([]byte, error) {
 			idx = append(idx, base, base+1, base+2, base, base+2, base+3)
 		} else {
 			idx = append(idx, base, base+2, base+1, base, base+3, base+2)
+		}
+	}
+	return writeGLB(m.Name, pos, nrm, uvs, idx, tex)
+}
+
+// writeGLB writes one textured mesh as a glTF binary: positions, normals and texture coordinates per
+// vertex, triangles counter-clockwise seen from outside, the texture drawn with nearest filtering.
+func writeGLB(name string, pos, nrm, uvs []float32, idx []uint32, tex image.Image) ([]byte, error) {
+	lo := [3]float32{math.MaxFloat32, math.MaxFloat32, math.MaxFloat32}
+	hi := [3]float32{-math.MaxFloat32, -math.MaxFloat32, -math.MaxFloat32}
+	for i := 0; i < len(pos); i += 3 {
+		for a := range 3 {
+			lo[a], hi[a] = min(lo[a], pos[i+a]), max(hi[a], pos[i+a])
 		}
 	}
 
@@ -250,14 +262,14 @@ func (m *Model) GLB() ([]byte, error) {
 		"asset":  map[string]any{"version": "2.0", "generator": "sprite2model " + Version},
 		"scene":  0,
 		"scenes": []any{map[string]any{"nodes": []int{0}}},
-		"nodes":  []any{map[string]any{"mesh": 0, "name": m.Name}},
-		"meshes": []any{map[string]any{"name": m.Name, "primitives": []any{map[string]any{
+		"nodes":  []any{map[string]any{"mesh": 0, "name": name}},
+		"meshes": []any{map[string]any{"name": name, "primitives": []any{map[string]any{
 			"attributes": map[string]int{"POSITION": 0, "NORMAL": 1, "TEXCOORD_0": 2},
 			"indices":    3,
 			"material":   0,
 		}}}},
 		"materials": []any{map[string]any{
-			"name": m.Name,
+			"name": name,
 			"pbrMetallicRoughness": map[string]any{
 				"baseColorTexture": map[string]int{"index": 0},
 				"metallicFactor":   0,
@@ -303,6 +315,9 @@ func (m *Model) GLB() ([]byte, error) {
 // sprite; for an outfit, facing south, west, north and east), side by side and each pixel scaled up:
 // a check of the conversion without a 3D viewer.
 func (m *Model) Preview(scale int) *image.NRGBA {
+	if m.mesh != nil {
+		return m.mesh.preview(m.unit, 4*scale)
+	}
 	v := m.v
 	w, h := v.w, v.h
 	gap := scale * 4

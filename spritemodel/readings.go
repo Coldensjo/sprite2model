@@ -409,6 +409,9 @@ const (
 	cutoutBelow = 55
 	// organicBelow is the straightness under which a thing is taken to have grown: round, never a wall.
 	organicBelow = 0.45
+	// itemBelow is the share a long sprite's best reading must draw for it not to be taken for an item
+	// drawn flat (Item).
+	itemBelow = 85
 )
 
 // Score is how much of the sprite a reading drew, in percent of its opaque pixels.
